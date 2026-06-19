@@ -18,7 +18,7 @@ class UserService:
 
     def add_user(self, data: dict) -> User:
         try:
-            user = self._repo.create_user(**data)
+            user = self._repo.create_user(data)
             return user
         except TypeError:
             raise InvalidRequestError

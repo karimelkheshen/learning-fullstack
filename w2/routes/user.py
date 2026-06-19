@@ -1,19 +1,16 @@
-from flask import jsonify, request, Blueprint
+from flask import jsonify, request, Blueprint, current_app
 
-from repo.in_memory_user_repo import InMemoryUserRepo
-from service.user import UserService, InvalidUserFieldsError, InvalidRequestError
+from service.user import InvalidUserFieldsError, InvalidRequestError
 
-_user_repo = InMemoryUserRepo()
-_user_service = UserService(_user_repo)
-
-users_blueprint: Blueprint = Blueprint("users", __name__, url_prefix="/users/")
+users_blueprint: Blueprint = Blueprint("users", __name__, url_prefix="/users")
 
 
-@users_blueprint.post("/")
+@users_blueprint.post("")
 def add_user():
+    services = current_app.extensions["services_container"]
     data = request.get_json()
     try:
-        user = _user_service.add_user(data)
+        user = services.user_service.add_user(data)
         return jsonify({"status": "ok", "details": user.model_dump(mode="json")}), 201
     except InvalidRequestError:
         return jsonify({"status": "error", "details": "invalid request format"}), 400
@@ -23,10 +20,11 @@ def add_user():
 
 @users_blueprint.get("/<string:user_id>")
 def get_user_by_id(user_id: str):
-    user = _user_service.get_user_by_id(user_id)
+    services = current_app.extensions["services_container"]
+    user = services.user_service.get_user_by_id(user_id)
     if user is None:
         return (
-            jsonify({"status": "not found", "details": "user with id not found"}),
+            jsonify({"status": "not found", "details": "user not found"}),
             404,
         )
     return jsonify({"status": "ok", "details": user.model_dump(mode="json")}), 200

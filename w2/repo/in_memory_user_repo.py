@@ -7,11 +7,11 @@ class InMemoryUserRepo(UserRepo):
         super().__init__()
         self._users = {}
 
-    def create_user(self, username: str, email: str) -> User:
+    def create_user(self, data: dict) -> User:
         """
         creates a user and adds them to the repo
         """
-        user = User(username=username, email=email)
+        user = User(**data)
         self._users[user.id] = user
         return user
 
