@@ -1,3 +1,7 @@
+## 2026-06-22_2
+
+- Implement w3 attendee system
+
 ## 2026-06-22_1
 
 - Added w2.test
