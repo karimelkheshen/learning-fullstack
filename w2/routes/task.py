@@ -23,7 +23,7 @@ def create_task():
     except UserNotFoundException:
         return (
             jsonify({"status": "error", "details": "user with owner_id not found"}),
-            400,
+            404,
         )
     except InvalidTaskFieldsError:
         return (

@@ -27,9 +27,9 @@ def create_app():
     app.register_blueprint(users_blueprint)
     app.register_blueprint(tasks_blueprint)
 
-    @app.get("/status")
-    def status():
-        return jsonify({"status": "ok"})
+    @app.get("/health")
+    def health():
+        return jsonify({"status": "ok"}), 200
 
     return app
 
