@@ -1,3 +1,7 @@
+## 2026-06-25_1
+
+- Implement w3 events system
+
 ## 2026-06-22_2
 
 - Implement w3 attendee system

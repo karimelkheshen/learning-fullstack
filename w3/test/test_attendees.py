@@ -5,7 +5,7 @@ def test_create_attendee_valid(client):
     payload = {"name": "test", "email": "test@test.com"}
     response = client.post("/attendees", json=payload)
     assert response.status_code == 201
-    created_attendee = response.get_json()["data"]["details"]
+    created_attendee = response.get_json()["data"]
     assert "created_at" in created_attendee.keys()
     assert "id" in created_attendee.keys()
 
@@ -27,7 +27,7 @@ def test_create_attendee_invalid_fields(client, field, invalid_value):
 def test_get_all_attendees_empty(client):
     response = client.get("/attendees")
     assert response.status_code == 200
-    attendee_list = response.get_json()["data"]["attendees"]
+    attendee_list = response.get_json()["data"]
     assert attendee_list == []
 
 
@@ -35,7 +35,7 @@ def test_get_all_attendees(client, created_attendees):
     expected_attendee_ids = [attendee["id"] for attendee in created_attendees]
     response = client.get("/attendees")
     assert response.status_code == 200
-    attendee_list = response.get_json()["data"]["attendees"]
+    attendee_list = response.get_json()["data"]
     assert expected_attendee_ids == [attendee["id"] for attendee in attendee_list]
 
 
@@ -43,7 +43,7 @@ def test_get_attendee_by_id_found(client, created_attendee):
     expected_id = created_attendee["id"]
     response = client.get(f"/attendees/{expected_id}")
     assert response.status_code == 200
-    assert response.get_json()["data"]["attendee"]["id"] == expected_id
+    assert response.get_json()["data"]["id"] == expected_id
 
 
 def test_get_attendee_by_id_not_found(client):
