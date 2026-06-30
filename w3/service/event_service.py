@@ -33,6 +33,10 @@ class EventService:
             created_at=new_event.created_at.isoformat(),
         )
 
+    def event_exists(self, event_id: str) -> bool:
+        found_event = self._repo.get_event_by_id(event_id)
+        return found_event is not None
+
     def get_event_by_id(self, event_id: str) -> EventDto | None:
         event_found = self._repo.get_event_by_id(event_id)
         if event_found is None:

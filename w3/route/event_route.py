@@ -1,8 +1,17 @@
 from flask import jsonify, request, Blueprint, current_app
 from pydantic import ValidationError
 
-from util.error_serializer import serialize_validation_errors
+from util.error_serializer import serialize_validation_errors, has_only_semantic_errors
+from service.attendee_service import AttendeeService
 from service.event_service import EventService
+from service.rsvp_service import (
+    RsvpService,
+    CreateRsvpErrorEventNotFound,
+    CreateRsvpErrorAttendeeNotFound,
+    CreateRsvpErrorEventNotOpen,
+    CreateRsvpErrorAttendeeAlreadyConfirmed,
+    CreateRsvpErrorAttendeeAlreadyWaitlisted,
+)
 from dto.event_dto import (
     CreateEventRequestDto,
     EventDto,
@@ -10,13 +19,15 @@ from dto.event_dto import (
     GetAllEventsRequestDto,
     GetAllEventsResponseDto,
 )
+from dto.rsvp_dto import CreateRsvpDto, RsvpDto
 from schema.event_schema import CreateEventSchema, UpdateEventSchema, GetAllEventsSchema
+from schema.rsvp_schema import CreateRsvpSchema
 
 events_bp = Blueprint("events", __name__, url_prefix="/events")
 
 
 @events_bp.post("")
-def add_event_route():
+def create_event_route():
     event_service: EventService = current_app.extensions["services"].event_service
 
     data = request.get_json()
@@ -25,6 +36,7 @@ def add_event_route():
     try:
         schema = CreateEventSchema.model_validate(data)
     except ValidationError as e:
+        status_code = 422 if has_only_semantic_errors(e) else 400
         return (
             jsonify(
                 {
@@ -32,7 +44,7 @@ def add_event_route():
                     "data": {"errors": serialize_validation_errors(e)},
                 }
             ),
-            400,
+            status_code,
         )
 
     request_dto: CreateEventRequestDto = CreateEventRequestDto(
@@ -102,6 +114,7 @@ def update_event_route(event_id: str):
     try:
         schema = UpdateEventSchema.model_validate(data)
     except ValidationError as e:
+        status_code = 422 if has_only_semantic_errors(e) else 400
         return (
             jsonify(
                 {
@@ -109,7 +122,7 @@ def update_event_route(event_id: str):
                     "data": {"errors": serialize_validation_errors(e)},
                 }
             ),
-            400,
+            status_code,
         )
 
     update_event_req_dto: UpdateEventRequestDto = UpdateEventRequestDto(
@@ -145,3 +158,95 @@ def delete_event_route(event_id: str):
             jsonify({"status": "not_found", "data": {"message": "event not found"}}),
             404,
         )
+
+
+@events_bp.post("/<string:event_id>/rsvps")
+def create_rsvp_route(event_id: str):
+    rsvp_service: RsvpService = current_app.extensions["services"].rsvp_service
+
+    data = request.get_json()
+
+    schema: CreateRsvpSchema | None = None
+    try:
+        schema = CreateRsvpSchema.model_validate(data)
+    except ValidationError as e:
+        return (
+            jsonify(
+                {
+                    "status": "validation_error",
+                    "data": {"errors": serialize_validation_errors(e)},
+                }
+            ),
+            400,
+        )
+
+    request_dto: CreateRsvpDto = CreateRsvpDto(
+        attendee_id=schema.attendee_id,
+        event_id=event_id,
+    )
+
+    try:
+        created_rsvp: RsvpDto = rsvp_service.create_rsvp(request_dto)
+    except CreateRsvpErrorEventNotFound:
+        return (
+            jsonify(
+                {
+                    "status": "not_found",
+                    "data": {"message": "event not found"},
+                }
+            ),
+            404,
+        )
+    except CreateRsvpErrorAttendeeNotFound:
+        return (
+            jsonify(
+                {
+                    "status": "not_found",
+                    "data": {"message": "attendee not found"},
+                }
+            ),
+            404,
+        )
+    except CreateRsvpErrorEventNotOpen:
+        return (
+            jsonify({"status": "conflict", "data": {"message": "event not open"}}),
+            409,
+        )
+    except CreateRsvpErrorAttendeeAlreadyConfirmed:
+        return (
+            jsonify(
+                {
+                    "status": "conflict",
+                    "data": {"message": "attendee attendance already confirmed"},
+                }
+            ),
+            409,
+        )
+    except CreateRsvpErrorAttendeeAlreadyWaitlisted:
+        return (
+            jsonify(
+                {
+                    "status": "conflict",
+                    "data": {"message": "attendee already waitlisted for event"},
+                }
+            ),
+            409,
+        )
+
+    return jsonify({"status": "ok", "data": created_rsvp}), 201
+
+
+@events_bp.get("/<string:event_id>/rsvps")
+def get_all_rsvps_for_event_route(event_id: str):
+    event_service: EventService = current_app.extensions["services"].event_service
+    rsvp_service: RsvpService = current_app.extensions["services"].rsvp_service
+
+    if not event_service.event_exists(event_id):
+        return (
+            jsonify({"status": "not_found", "data": {"message": "event not found"}}),
+            404,
+        )
+
+    results = rsvp_service.get_all_rsvps(event_id_filter=event_id)
+
+    return jsonify({"status": "ok", "data": results}), 200

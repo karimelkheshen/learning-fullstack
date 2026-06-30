@@ -1,3 +1,7 @@
+## 2026-06-30_1
+
+- Finished w3
+
 ## 2026-06-25_1
 
 - Implement w3 events system

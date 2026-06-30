@@ -32,7 +32,7 @@ def test_create_event_invalid_start_time(client):
         "status": "open",
     }
     response = client.post("/events", json=payload)
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 def test_create_event_invalid_max_capacity(client):
@@ -53,6 +53,18 @@ def test_create_event_invalid_status(client):
         "description": "test",
         "start_time": (datetime.now() + timedelta(hours=1)).isoformat(),
         "max_capacity": 100,
+        "status": "invalid_status",
+    }
+    response = client.post("/events", json=payload)
+    assert response.status_code == 400
+
+
+def test_create_event_mixed_structural_and_semantic_errors_returns_400(client):
+    # missing required key and invalid start time
+    payload = {
+        "title": "test",
+        "description": "test",
+        "start_time": (datetime.now() - timedelta(hours=1)).isoformat(),
         "status": "invalid_status",
     }
     response = client.post("/events", json=payload)
@@ -116,7 +128,7 @@ def test_get_all_events_status_filter_valid(client, created_events):
     expected_event_ids = [
         event["id"] for event in created_events if event["status"] == status
     ]
-    response = client.get(f"/events?status_filter={status}")
+    response = client.get(f"/events?status_filter={status}&per_page=100")
     assert response.status_code == 200
     received_event_ids = [
         event["id"] for event in response.get_json()["data"]["results"]
@@ -216,7 +228,7 @@ def test_update_event_invalid_start_time(client, created_event):
         "status": "closed",
     }
     response = client.put(f"/events/{created_event['id']}", json=payload)
-    assert response.status_code == 400
+    assert response.status_code == 422
 
 
 def test_update_event_invalid_max_capacity(client, created_event):

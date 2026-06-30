@@ -57,6 +57,21 @@ def created_event(client):
 
 
 @pytest.fixture
+def created_event_not_open(client):
+    payload = {
+        "title": "test",
+        "description": "test",
+        "start_time": (datetime.now() + timedelta(hours=1)).isoformat(),
+        "max_capacity": 100,
+        "status": EventStatus.CLOSED,
+    }
+    response = client.post("/events", json=payload)
+    assert response.status_code == 201
+
+    return response.get_json()["data"]
+
+
+@pytest.fixture
 def created_events(client):
     results = []
 
@@ -76,3 +91,14 @@ def created_events(client):
         results.append(response.get_json()["data"])
 
     return results
+
+
+@pytest.fixture
+def created_rsvp(client, created_event, created_attendee):
+    res = client.post(
+        f"/events/{created_event['id']}/rsvps",
+        json={"attendee_id": created_attendee["id"]},
+    )
+
+    assert res.status_code == 201
+    return res.get_json()["data"]

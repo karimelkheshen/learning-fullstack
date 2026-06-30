@@ -46,7 +46,7 @@ class EventsRepo:
             results = [event for event in results if event.status == status_filter]
 
         if sort_by_start_time_asc is not None:
-            sorted(
+            results = sorted(
                 results,
                 key=lambda item: item.start_time,
                 reverse=not sort_by_start_time_asc,

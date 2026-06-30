@@ -5,10 +5,10 @@ from repo.attendee_repo import AttendeeRepo
 
 class AttendeeService:
     def __init__(self, attendee_repo: AttendeeRepo) -> None:
-        self._attendee_repo = attendee_repo
+        self._repo = attendee_repo
 
     def create_attendee(self, request_dto: CreateAttendeeRequestDto) -> AttendeeDto:
-        created_attendee: Attendee = self._attendee_repo.add_attendee(
+        created_attendee: Attendee = self._repo.add_attendee(
             name=request_dto.name,
             email=request_dto.email,
         )
@@ -27,11 +27,11 @@ class AttendeeService:
                 email=attendee.email,
                 created_at=attendee.created_at,
             )
-            for attendee in self._attendee_repo.get_all_attendees()
+            for attendee in self._repo.get_all_attendees()
         ]
 
     def get_attendee_by_id(self, attendee_id: str) -> AttendeeDto | None:
-        found_attendee = self._attendee_repo.get_attendee_by_id(attendee_id)
+        found_attendee = self._repo.get_attendee_by_id(attendee_id)
         if found_attendee is None:
             return None
         return AttendeeDto(
@@ -41,5 +41,9 @@ class AttendeeService:
             created_at=found_attendee.created_at,
         )
 
+    def attendee_exists(self, attendee_id: str) -> bool:
+        found_attendee = self._repo.get_attendee_by_id(attendee_id)
+        return found_attendee is not None
+
     def delete_attendee(self, attendee_id: str) -> bool:
-        return self._attendee_repo.delete_attendee(attendee_id)
+        return self._repo.delete_attendee(attendee_id)
